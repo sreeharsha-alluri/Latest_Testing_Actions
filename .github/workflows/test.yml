@@ -4,27 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        # description: "The branch to deploy Coverity"
-        # type: string
-        # required: true
-        default: "main"
+        description: "Select a branch to deploy Coverity"
+        type: string
+        required: true
+        default: "main"  # Set default to 'main', or any default branch you want.
 
 jobs:
   fetch_branches:
     runs-on: ubuntu-latest
-    outputs:
-      branches: ${{ steps.get_branches.outputs.branches }}
     steps:
-      - name: Call GitHub API to fetch branches
+      - name: Call GitHub API to fetch branches including the default branch
         id: get_branches
         run: |
-          branches=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          default_branch=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }} | jq -r '.default_branch')
+          
+          all_branches=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/${{ github.repository }}/branches | jq -r '.[].name')
-          echo "::set-output name=branches::${branches}"
+          
+          echo "Default branch: ${default_branch}"
+          echo "Available branches: ${all_branches}"
 
   build:
     runs-on: ubuntu-latest
-    needs: fetch_branches
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
